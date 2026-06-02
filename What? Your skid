@@ -616,7 +616,7 @@ addButton("Abrir Executer", secTools, () => {
     createExecuterWindow();
 });
 
-addButton("Abrir Sites | relacionados ", secTools, () => {
+addButton("Abrir Sites Relacionados", secTools, () => {
     createHiddenSitesWindow();
 });
 
@@ -1318,37 +1318,32 @@ const startInspectMode = () => {
     showNotification("Inspector ativado");
 };
 
-const renderSites = async (filter = "") => {
-    list.innerHTML = "";
-
-    const host = filter.trim();
-
-    if (!host) {
-        list.innerHTML = `
-            <div style="
-                color:#888;
-                font-size:13px;
-                text-align:center;
-                margin-top:20px;
-            ">
-                Pesquise um domínio ou IP
-            </div>
-        `;
-        return;
-    }
+const renderSites = async () => {
+    list.innerHTML = `
+        <div style="
+            color:#888;
+            font-size:13px;
+            text-align:center;
+            margin-top:20px;
+        ">
+            Buscando sites relacionados...
+        </div>
+    `;
 
     try {
-        const response = await fetch(
-            `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
+        const currentHost = window.location.hostname;
+
+        const dnsResponse = await fetch(
+            `https://dns.google/resolve?name=${encodeURIComponent(currentHost)}&type=A`
         );
 
-        const data = await response.json();
+        const dnsData = await dnsResponse.json();
 
-        const records = (data.Answer || []).filter(v => {
+        const ipRecord = (dnsData.Answer || []).find(v => {
             return /^[0-9.]+$/.test(v.data);
         });
 
-        if (records.length === 0) {
+        if (!ipRecord) {
             list.innerHTML = `
                 <div style="
                     color:#ff5555;
@@ -1356,13 +1351,46 @@ const renderSites = async (filter = "") => {
                     text-align:center;
                     margin-top:20px;
                 ">
-                    Nenhum IP encontrado
+                    IP não encontrado
                 </div>
             `;
             return;
         }
 
-        records.forEach(record => {
+        const ip = ipRecord.data;
+
+        const reverseResponse = await fetch(
+            `https://api.hackertarget.com/reverseiplookup/?q=${ip}`
+        );
+
+        const reverseText = await reverseResponse.text();
+
+        const domains = reverseText
+            .split("\n")
+            .map(v => v.trim())
+            .filter(v =>
+                v &&
+                !v.toLowerCase().includes("error") &&
+                !v.toLowerCase().includes("api count exceeded")
+            );
+
+        list.innerHTML = "";
+
+        if (domains.length === 0) {
+            list.innerHTML = `
+                <div style="
+                    color:#ff5555;
+                    font-size:13px;
+                    text-align:center;
+                    margin-top:20px;
+                ">
+                    Nenhum site relacionado encontrado
+                </div>
+            `;
+            return;
+        }
+
+        domains.forEach(domain => {
             const item = document.createElement("div");
 
             item.style = `
@@ -1382,15 +1410,15 @@ const renderSites = async (filter = "") => {
                     font-weight:bold;
                     word-break:break-all;
                 ">
-                    ${host}
+                    ${domain}
                 </div>
 
                 <div style="
                     color:#00ff88;
-                    font-size:13px;
+                    font-size:12px;
                     font-family:monospace;
                 ">
-                    IP: ${record.data}
+                    IP: ${ip}
                 </div>
 
                 <div style="
@@ -1411,7 +1439,7 @@ const renderSites = async (filter = "") => {
                         Abrir
                     </button>
 
-                    <button class="ghost-copy-ip" style="
+                    <button class="ghost-copy-site" style="
                         flex:1;
                         background:#1b1b1b;
                         color:#fff;
@@ -1421,24 +1449,22 @@ const renderSites = async (filter = "") => {
                         font-weight:bold;
                         cursor:pointer;
                     ">
-                        Copiar IP
+                        Copiar
                     </button>
                 </div>
             `;
 
             item.querySelector(".ghost-open-site").onclick = () => {
                 window.open(
-                    host.startsWith("http")
-                        ? host
-                        : "https://" + host,
+                    "https://" + domain,
                     "_blank"
                 );
             };
 
-            item.querySelector(".ghost-copy-ip").onclick = () => {
-                navigator.clipboard.writeText(record.data);
+            item.querySelector(".ghost-copy-site").onclick = () => {
+                navigator.clipboard.writeText(domain);
 
-                showNotification("IP copiado");
+                showNotification("Domínio copiado");
             };
 
             list.appendChild(item);
@@ -1452,7 +1478,7 @@ const renderSites = async (filter = "") => {
                 text-align:center;
                 margin-top:20px;
             ">
-                Erro ao buscar domínio
+                Erro ao buscar sites relacionados
             </div>
         `;
     }
