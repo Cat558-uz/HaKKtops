@@ -600,15 +600,52 @@ let fpsInterval = null;
         
         const secTools = addSection("Ferramentas Pro", content);
 
+addButton("Inspecionar Objeto", secTools, () => {
+    startInspectMode();
+});
+
+addButton("Click Para Deletar", secTools, () => {
+    startDeleteMode();
+});
+
+addButton("Abrir Console", secTools, () => {
+    createConsoleWindow();
+});
+
+addButton("Abrir Executer", secTools, () => {
+    createExecuterWindow();
+});
+
+addButton("Abrir Sites | Escondidos", secTools, () => {
+    createHiddenSitesWindow();
+});
+
 const ignoredInspectorElements = [
     "#ghost-ui-root",
     "#ghost-console",
     "#ghost-executer",
-    "#ghost-inspector"
+    "#ghost-inspector",
+    "#ghost-hidden-sites"
 ];
 
 const isGhostUI = (el) => {
     return ignoredInspectorElements.some(sel => el.closest(sel));
+};
+
+const fixTyping = (el) => {
+    if (!el) return;
+
+    el.addEventListener("mousedown", e => {
+        e.stopPropagation();
+    });
+
+    el.addEventListener("click", e => {
+        e.stopPropagation();
+    });
+
+    el.addEventListener("keydown", e => {
+        e.stopPropagation();
+    });
 };
 
 const createConsoleWindow = () => {
@@ -631,7 +668,6 @@ const createConsoleWindow = () => {
         z-index:10000000;
         display:flex;
         flex-direction:column;
-        backdrop-filter:blur(12px);
         box-shadow:0 25px 60px rgba(0,0,0,0.7);
         font-family:monospace;
     `;
@@ -642,24 +678,23 @@ const createConsoleWindow = () => {
             background:#0d0d0d;
             border-bottom:1px solid rgba(255,255,255,0.06);
             color:#fff;
-            font-weight:bold;
             display:flex;
             justify-content:space-between;
             align-items:center;
             cursor:move;
             user-select:none;
         ">
-            <span>Console</span>
+            <span style="font-weight:bold;">Console</span>
 
             <button id="ghost-console-close" style="
+                width:30px;
+                height:30px;
+                border:none;
+                border-radius:6px;
                 background:#ff4444;
                 color:#fff;
-                border:none;
-                width:28px;
-                height:28px;
-                border-radius:6px;
-                cursor:pointer;
                 font-weight:bold;
+                cursor:pointer;
             ">×</button>
         </div>
 
@@ -681,7 +716,8 @@ const createConsoleWindow = () => {
         box.remove();
     };
 
-    const consoleContent = box.querySelector("#ghost-console-content");
+    const consoleContent =
+        box.querySelector("#ghost-console-content");
 
     ["log", "warn", "error"].forEach(type => {
         const original = console[type];
@@ -691,20 +727,22 @@ const createConsoleWindow = () => {
 
             const line = document.createElement("div");
 
-            line.style.marginBottom = "6px";
-            line.style.padding = "6px";
-            line.style.borderRadius = "6px";
-            line.style.background = "rgba(255,255,255,0.03)";
+            line.style = `
+                margin-bottom:6px;
+                padding:6px;
+                border-radius:6px;
+                background:rgba(255,255,255,0.03);
+                color:${
+                    type === "error"
+                        ? "#ff5555"
+                        : type === "warn"
+                        ? "#ffaa00"
+                        : "#ffffff"
+                };
+            `;
 
-            if (type === "error") {
-                line.style.color = "#ff5555";
-            } else if (type === "warn") {
-                line.style.color = "#ffaa00";
-            } else {
-                line.style.color = "#ffffff";
-            }
-
-            line.textContent = `[${type.toUpperCase()}] ${args.join(" ")}`;
+            line.textContent =
+                `[${type.toUpperCase()}] ${args.join(" ")}`;
 
             consoleContent.appendChild(line);
 
@@ -737,7 +775,6 @@ const createExecuterWindow = () => {
         display:flex;
         flex-direction:column;
         box-shadow:0 30px 70px rgba(0,0,0,0.75);
-        backdrop-filter:blur(12px);
     `;
 
     box.innerHTML = `
@@ -773,7 +810,7 @@ const createExecuterWindow = () => {
             </button>
         </div>
 
-        <textarea id="ghost-editor" spellcheck="false" placeholder="// Digite seu código aqui..." style="
+        <textarea id="ghost-editor" spellcheck="false" placeholder="// Digite seu código..." style="
             flex:1;
             background:#030303;
             color:#ffffff;
@@ -802,7 +839,6 @@ const createExecuterWindow = () => {
                 border-radius:8px;
                 cursor:pointer;
                 font-weight:bold;
-                font-size:13px;
             ">
                 Executar
             </button>
@@ -816,7 +852,6 @@ const createExecuterWindow = () => {
                 border-radius:8px;
                 cursor:pointer;
                 font-weight:bold;
-                font-size:13px;
             ">
                 Limpar
             </button>
@@ -827,9 +862,13 @@ const createExecuterWindow = () => {
 
     makeHUDDraggable(box);
 
+    const editor =
+        box.querySelector("#ghost-editor");
+
+    fixTyping(editor);
+
     box.querySelector("#ghost-run").onclick = () => {
-        const code =
-            box.querySelector("#ghost-editor").value;
+        const code = editor.value;
 
         try {
             new Function(code)();
@@ -843,7 +882,7 @@ const createExecuterWindow = () => {
     };
 
     box.querySelector("#ghost-clear").onclick = () => {
-        box.querySelector("#ghost-editor").value = "";
+        editor.value = "";
     };
 
     box.querySelector("#ghost-executer-close").onclick = () => {
@@ -866,7 +905,6 @@ const startDeleteMode = () => {
         pointer-events:none;
         z-index:10000001;
         font-family:monospace;
-        border:1px solid rgba(255,255,255,0.2);
     `;
 
     document.body.appendChild(overlay);
@@ -900,14 +938,32 @@ const startDeleteMode = () => {
     };
 
     const stop = () => {
-        document.removeEventListener("mousemove", move, true);
-        document.removeEventListener("click", click, true);
+        document.removeEventListener(
+            "mousemove",
+            move,
+            true
+        );
+
+        document.removeEventListener(
+            "click",
+            click,
+            true
+        );
 
         overlay.remove();
     };
 
-    document.addEventListener("mousemove", move, true);
-    document.addEventListener("click", click, true);
+    document.addEventListener(
+        "mousemove",
+        move,
+        true
+    );
+
+    document.addEventListener(
+        "click",
+        click,
+        true
+    );
 
     showNotification("Clique em um objeto");
 };
@@ -933,7 +989,6 @@ const startInspectMode = () => {
         display:flex;
         flex-direction:column;
         box-shadow:0 30px 70px rgba(0,0,0,0.75);
-        backdrop-filter:blur(12px);
     `;
 
     panel.innerHTML = `
@@ -942,14 +997,15 @@ const startInspectMode = () => {
             background:#0d0d0d;
             border-bottom:1px solid rgba(255,255,255,0.06);
             color:#fff;
-            font-weight:bold;
             display:flex;
             justify-content:space-between;
             align-items:center;
             cursor:move;
             user-select:none;
         ">
-            <span>Inspector</span>
+            <span style="font-weight:bold;">
+                Inspector
+            </span>
 
             <button id="ghost-inspector-close" style="
                 width:30px;
@@ -1015,6 +1071,11 @@ const startInspectMode = () => {
 
     makeHUDDraggable(panel);
 
+    const editor =
+        panel.querySelector("#ghost-inspector-editor");
+
+    fixTyping(editor);
+
     let currentElement = null;
 
     const hover = document.createElement("div");
@@ -1032,9 +1093,6 @@ const startInspectMode = () => {
 
     const info =
         panel.querySelector("#ghost-inspector-info");
-
-    const editor =
-        panel.querySelector("#ghost-inspector-editor");
 
     const move = (e) => {
         const el = e.target;
@@ -1054,7 +1112,9 @@ const startInspectMode = () => {
         hover.style.height = rect.height + "px";
 
         info.textContent =
-            `${el.tagName.toLowerCase()} ${el.id ? "#" + el.id : ""}`;
+            `${el.tagName.toLowerCase()} ${
+                el.id ? "#" + el.id : ""
+            }`;
     };
 
     const click = (e) => {
@@ -1072,8 +1132,17 @@ const startInspectMode = () => {
         showNotification("Objeto selecionado");
     };
 
-    document.addEventListener("mousemove", move, true);
-    document.addEventListener("click", click, true);
+    document.addEventListener(
+        "mousemove",
+        move,
+        true
+    );
+
+    document.addEventListener(
+        "click",
+        click,
+        true
+    );
 
     panel.querySelector("#ghost-inspector-apply").onclick = () => {
         if (!currentElement) return;
@@ -1099,8 +1168,17 @@ const startInspectMode = () => {
     };
 
     panel.querySelector("#ghost-inspector-close").onclick = () => {
-        document.removeEventListener("mousemove", move, true);
-        document.removeEventListener("click", click, true);
+        document.removeEventListener(
+            "mousemove",
+            move,
+            true
+        );
+
+        document.removeEventListener(
+            "click",
+            click,
+            true
+        );
 
         hover.remove();
 
@@ -1112,21 +1190,221 @@ const startInspectMode = () => {
     showNotification("Inspector ativado");
 };
 
-addButton("Inspecionar Objeto", secTools, () => {
-    startInspectMode();
-});
+const createHiddenSitesWindow = () => {
+    if (document.getElementById("ghost-hidden-sites")) return;
 
-addButton("Click Para Deletar", secTools, () => {
-    startDeleteMode();
-});
+    const box = document.createElement("div");
 
-addButton("Abrir Console", secTools, () => {
-    createConsoleWindow();
-});
+    box.id = "ghost-hidden-sites";
 
-addButton("Abrir Executer", secTools, () => {
-    createExecuterWindow();
-});
+    box.style = `
+        position:fixed;
+        top:140px;
+        left:160px;
+        width:900px;
+        height:600px;
+        background:#050505;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:12px;
+        overflow:hidden;
+        z-index:10000000;
+        display:flex;
+        flex-direction:column;
+        box-shadow:0 30px 70px rgba(0,0,0,0.75);
+    `;
+
+    box.innerHTML = `
+        <div style="
+            padding:12px 14px;
+            background:#0d0d0d;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+            color:#fff;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            cursor:move;
+            user-select:none;
+        ">
+            <span style="
+                font-weight:bold;
+            ">
+                Sites Escondidos
+            </span>
+
+            <button id="ghost-sites-close" style="
+                width:30px;
+                height:30px;
+                border:none;
+                border-radius:6px;
+                background:#ff4444;
+                color:#fff;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                ×
+            </button>
+        </div>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            padding:12px;
+            background:#090909;
+            border-bottom:1px solid rgba(255,255,255,0.05);
+        ">
+            <input id="ghost-sites-input" type="text" placeholder="Pesquisar domínio ou IP..." style="
+                flex:1;
+                background:#111;
+                color:#fff;
+                border:1px solid rgba(255,255,255,0.08);
+                outline:none;
+                padding:12px;
+                border-radius:8px;
+                font-size:13px;
+            ">
+
+            <button id="ghost-sites-search" style="
+                width:120px;
+                background:#fff;
+                color:#000;
+                border:none;
+                border-radius:8px;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                Buscar
+            </button>
+        </div>
+
+        <div id="ghost-sites-list" style="
+            flex:1;
+            overflow:auto;
+            padding:12px;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        "></div>
+    `;
+
+    document.body.appendChild(box);
+
+    makeHUDDraggable(box);
+
+    const input =
+        box.querySelector("#ghost-sites-input");
+
+    fixTyping(input);
+
+    const list =
+        box.querySelector("#ghost-sites-list");
+
+    const sites = [
+        {
+            name: "Google",
+            domain: "google.com",
+            ip: "142.250.219.78"
+        },
+        {
+            name: "Discord",
+            domain: "discord.com",
+            ip: "162.159.135.232"
+        },
+        {
+            name: "GitHub",
+            domain: "github.com",
+            ip: "140.82.121.3"
+        },
+        {
+            name: "Roblox",
+            domain: "roblox.com",
+            ip: "128.116.95.35"
+        }
+    ];
+
+    const renderSites = (filter = "") => {
+        list.innerHTML = "";
+
+        const filtered = sites.filter(site =>
+            site.name.toLowerCase().includes(filter.toLowerCase()) ||
+            site.domain.toLowerCase().includes(filter.toLowerCase()) ||
+            site.ip.includes(filter)
+        );
+
+        filtered.forEach(site => {
+            const item = document.createElement("div");
+
+            item.style = `
+                background:#0d0d0d;
+                border:1px solid rgba(255,255,255,0.06);
+                border-radius:10px;
+                padding:14px;
+                display:flex;
+                flex-direction:column;
+                gap:6px;
+            `;
+
+            item.innerHTML = `
+                <div style="
+                    color:#fff;
+                    font-weight:bold;
+                    font-size:14px;
+                ">
+                    ${site.name}
+                </div>
+
+                <div style="
+                    color:#aaa;
+                    font-size:12px;
+                    font-family:monospace;
+                ">
+                    Domínio: ${site.domain}
+                </div>
+
+                <div style="
+                    color:#aaa;
+                    font-size:12px;
+                    font-family:monospace;
+                ">
+                    IP: ${site.ip}
+                </div>
+
+                <button style="
+                    margin-top:6px;
+                    background:#fff;
+                    color:#000;
+                    border:none;
+                    border-radius:8px;
+                    padding:10px;
+                    font-weight:bold;
+                    cursor:pointer;
+                ">
+                    Abrir Site
+                </button>
+            `;
+
+            item.querySelector("button").onclick = () => {
+                window.open(
+                    "https://" + site.domain,
+                    "_blank"
+                );
+            };
+
+            list.appendChild(item);
+        });
+    };
+
+    renderSites();
+
+    input.addEventListener("input", () => {
+        renderSites(input.value);
+    });
+
+    box.querySelector("#ghost-sites-close").onclick = () => {
+        box.remove();
+    };
+
+    showNotification("Sites carregados");
+};
         
 }
 
