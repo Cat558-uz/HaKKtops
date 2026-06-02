@@ -645,6 +645,17 @@ const createConsoleWindow = () => {
             font-size:12px;
             white-space:pre-wrap;
         "></div>
+
+        <button id="ghost-console-close" style="
+            background:#ff4444;
+            color:#fff;
+            border:none;
+            padding:10px;
+            cursor:pointer;
+            font-weight:bold;
+        ">
+            Fechar
+        </button>
     `;
 
     document.body.appendChild(box);
@@ -676,6 +687,10 @@ const createConsoleWindow = () => {
             content.scrollTop = content.scrollHeight;
         };
     });
+
+    box.querySelector("#ghost-console-close").onclick = () => {
+        box.remove();
+    };
 
     makeHUDDraggable(box);
 
@@ -791,7 +806,7 @@ const createExecuterWindow = () => {
 };
 
 const startDeleteMode = () => {
-    let overlay = document.createElement("div");
+    const overlay = document.createElement("div");
 
     overlay.style = `
         position:fixed;
@@ -807,8 +822,24 @@ const startDeleteMode = () => {
 
     document.body.appendChild(overlay);
 
+    const isGhostUI = (el) => {
+        return (
+            el.closest("#ghost-ui-root") ||
+            el.closest("#ghost-inspector") ||
+            el.closest("#ghost-console") ||
+            el.closest("#ghost-executer")
+        );
+    };
+
     const move = (e) => {
         const el = e.target;
+
+        if (!el || isGhostUI(el)) {
+            overlay.style.display = "none";
+            return;
+        }
+
+        overlay.style.display = "block";
 
         overlay.style.left = `${e.clientX + 12}px`;
         overlay.style.top = `${e.clientY + 12}px`;
@@ -818,28 +849,26 @@ const startDeleteMode = () => {
             (el.id ? ` #${el.id}` : "");
     };
 
-    const click = (e) => {
-        e.preventDefault();
-
-        e.stopPropagation();
-
-        const el = e.target;
-
-        if (el === overlay) return;
-
-        showNotification(`Objeto deletado`);
-
-        el.remove();
-
-        stop();
-    };
-
     const stop = () => {
         document.removeEventListener("mousemove", move, true);
-
         document.removeEventListener("click", click, true);
 
         overlay.remove();
+    };
+
+    const click = (e) => {
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        el.remove();
+
+        showNotification("Objeto deletado");
+
+        stop();
     };
 
     document.addEventListener("mousemove", move, true);
@@ -879,6 +908,8 @@ const startInspectMode = () => {
             border-bottom:1px solid rgba(255,255,255,0.08);
             color:#fff;
             font-weight:bold;
+            user-select:none;
+            cursor:move;
         ">
             Inspector
         </div>
@@ -895,18 +926,52 @@ const startInspectMode = () => {
             font-size:12px;
         "></textarea>
 
-        <button id="ghost-inspector-apply" style="
-            margin:10px;
-            background:#fff;
-            color:#000;
-            border:none;
+        <div style="
             padding:10px;
-            border-radius:6px;
-            font-weight:bold;
-            cursor:pointer;
+            background:#111;
+            border-top:1px solid rgba(255,255,255,0.08);
+            display:flex;
+            gap:8px;
         ">
-            Aplicar
-        </button>
+            <button id="ghost-inspector-select" style="
+                flex:1;
+                background:#fff;
+                color:#000;
+                border:none;
+                padding:10px;
+                border-radius:6px;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                Selecionar
+            </button>
+
+            <button id="ghost-inspector-apply" style="
+                flex:1;
+                background:#fff;
+                color:#000;
+                border:none;
+                padding:10px;
+                border-radius:6px;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                Aplicar
+            </button>
+
+            <button id="ghost-inspector-close" style="
+                width:100px;
+                background:#ff4444;
+                color:#fff;
+                border:none;
+                padding:10px;
+                border-radius:6px;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                Fechar
+            </button>
+        </div>
     `;
 
     document.body.appendChild(panel);
@@ -914,22 +979,44 @@ const startInspectMode = () => {
     makeHUDDraggable(panel);
 
     let currentElement = null;
+    let selecting = false;
 
     const hover = document.createElement("div");
 
+    hover.id = "ghost-hover";
+
     hover.style = `
         position:fixed;
-        border:2px solid #fff;
+        border:2px solid #ffffff;
         pointer-events:none;
-        z-index:10000001;
+        z-index:9999999;
+        box-sizing:border-box;
+        display:none;
     `;
 
     document.body.appendChild(hover);
 
+    const isGhostUI = (el) => {
+        return (
+            el.closest("#ghost-ui-root") ||
+            el.closest("#ghost-inspector") ||
+            el.closest("#ghost-console") ||
+            el.closest("#ghost-executer") ||
+            el.id === "ghost-hover"
+        );
+    };
+
     const move = (e) => {
+        if (!selecting) return;
+
         const el = e.target;
 
-        currentElement = el;
+        if (!el || isGhostUI(el)) {
+            hover.style.display = "none";
+            return;
+        }
+
+        hover.style.display = "block";
 
         const rect = el.getBoundingClientRect();
 
@@ -940,14 +1027,23 @@ const startInspectMode = () => {
     };
 
     const click = (e) => {
-        e.preventDefault();
+        if (!selecting) return;
 
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) return;
+
+        e.preventDefault();
         e.stopPropagation();
 
-        currentElement = e.target;
+        currentElement = el;
 
         panel.querySelector("#ghost-inspector-editor").value =
             currentElement.outerHTML;
+
+        selecting = false;
+
+        hover.style.display = "none";
 
         showNotification("Objeto selecionado");
     };
@@ -955,6 +1051,12 @@ const startInspectMode = () => {
     document.addEventListener("mousemove", move, true);
 
     document.addEventListener("click", click, true);
+
+    panel.querySelector("#ghost-inspector-select").onclick = () => {
+        selecting = true;
+
+        showNotification("Clique em um objeto");
+    };
 
     panel.querySelector("#ghost-inspector-apply").onclick = () => {
         if (!currentElement) return;
@@ -967,6 +1069,8 @@ const startInspectMode = () => {
 
             const newElement = temp.firstElementChild;
 
+            if (!newElement) return;
+
             currentElement.replaceWith(newElement);
 
             currentElement = newElement;
@@ -977,10 +1081,19 @@ const startInspectMode = () => {
         }
     };
 
+    panel.querySelector("#ghost-inspector-close").onclick = () => {
+        hover.remove();
+
+        panel.remove();
+
+        document.removeEventListener("mousemove", move, true);
+        document.removeEventListener("click", click, true);
+    };
+
     showNotification("Inspector aberto");
 };
 
-addButton("Inspecionar Objeto (Toggle)", secTools, () => {
+addButton("Inspecionar Objeto", secTools, () => {
     startInspectMode();
 });
 
@@ -999,7 +1112,7 @@ addButton("Abrir Executer", secTools, () => {
 addButton("Abrir Executer V2", secTools, () => {
     createExecuterWindow();
 });
-
+        
 }
 
         // --- ABA VISUAL / CONTROLE DE TELA (FOCO EM PREPARO PvP E EDIÇÃO VISUAL) ---
