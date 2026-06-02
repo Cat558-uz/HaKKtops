@@ -616,7 +616,11 @@ addButton("Abrir Executer", secTools, () => {
     createExecuterWindow();
 });
 
-addButton("Mostrar IP do Site", secUtilitarios, async () => {
+addButton("Abrir Sites | relacionados ", secTools, () => {
+    createHiddenSitesWindow();
+});
+
+addButton("Mostrar IP do Site", secTools, async () => {
     const host = window.location.hostname;
 
     if (!host) {
@@ -642,95 +646,106 @@ addButton("Mostrar IP do Site", secUtilitarios, async () => {
             return;
         }
 
-        const oldGui = document.getElementById("ip-viewer-gui");
+        const oldGui = document.getElementById("ghost-ip-viewer");
         if (oldGui) oldGui.remove();
 
         const gui = document.createElement("div");
-        gui.id = "ip-viewer-gui";
 
-        gui.style.position = "fixed";
-        gui.style.top = "50%";
-        gui.style.left = "50%";
-        gui.style.transform = "translate(-50%, -50%)";
-        gui.style.background = "#111";
-        gui.style.border = "1px solid #333";
-        gui.style.borderRadius = "12px";
-        gui.style.padding = "20px";
-        gui.style.width = "320px";
-        gui.style.zIndex = "999999";
-        gui.style.boxShadow = "0 0 20px rgba(0,0,0,0.5)";
-        gui.style.fontFamily = "Arial";
+        gui.id = "ghost-ip-viewer";
 
-        const title = document.createElement("div");
-        title.innerText = "IP do Site";
-        title.style.color = "#fff";
-        title.style.fontSize = "18px";
-        title.style.marginBottom = "15px";
-        title.style.fontWeight = "bold";
+        gui.style = `
+            position:fixed;
+            top:160px;
+            left:160px;
+            width:340px;
+            background:#050505;
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            overflow:hidden;
+            z-index:10000000;
+            box-shadow:0 30px 70px rgba(0,0,0,0.75);
+            font-family:monospace;
+        `;
 
-        const ipText = document.createElement("input");
-        ipText.value = record.data;
-        ipText.readOnly = true;
-        ipText.style.width = "100%";
-        ipText.style.padding = "10px";
-        ipText.style.border = "none";
-        ipText.style.outline = "none";
-        ipText.style.borderRadius = "8px";
-        ipText.style.background = "#1b1b1b";
-        ipText.style.color = "#00ff88";
-        ipText.style.fontSize = "15px";
-        ipText.style.boxSizing = "border-box";
+        gui.innerHTML = `
+            <div style="
+                padding:12px;
+                background:#0d0d0d;
+                border-bottom:1px solid rgba(255,255,255,0.06);
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                color:#fff;
+                cursor:move;
+                user-select:none;
+            ">
+                <span style="font-weight:bold;">
+                    IP do Site
+                </span>
 
-        const buttons = document.createElement("div");
-        buttons.style.display = "flex";
-        buttons.style.gap = "10px";
-        buttons.style.marginTop = "15px";
+                <button id="ghost-ip-close" style="
+                    width:28px;
+                    height:28px;
+                    border:none;
+                    border-radius:6px;
+                    background:#ff4444;
+                    color:#fff;
+                    cursor:pointer;
+                    font-weight:bold;
+                ">
+                    ×
+                </button>
+            </div>
 
-        const copyBtn = document.createElement("button");
-        copyBtn.innerText = "Copiar";
-        copyBtn.style.flex = "1";
-        copyBtn.style.padding = "10px";
-        copyBtn.style.border = "none";
-        copyBtn.style.borderRadius = "8px";
-        copyBtn.style.background = "#00aa66";
-        copyBtn.style.color = "#fff";
-        copyBtn.style.cursor = "pointer";
+            <div style="
+                padding:16px;
+                display:flex;
+                flex-direction:column;
+                gap:12px;
+            ">
+                <input value="${record.data}" readonly style="
+                    width:100%;
+                    background:#111;
+                    color:#00ff88;
+                    border:none;
+                    outline:none;
+                    padding:12px;
+                    border-radius:8px;
+                    font-size:14px;
+                    box-sizing:border-box;
+                ">
 
-        copyBtn.onclick = () => {
-            navigator.clipboard.writeText(record.data);
-            showNotification("IP copiado.");
-        };
-
-        const closeBtn = document.createElement("button");
-        closeBtn.innerText = "Fechar";
-        closeBtn.style.flex = "1";
-        closeBtn.style.padding = "10px";
-        closeBtn.style.border = "none";
-        closeBtn.style.borderRadius = "8px";
-        closeBtn.style.background = "#aa2222";
-        closeBtn.style.color = "#fff";
-        closeBtn.style.cursor = "pointer";
-
-        closeBtn.onclick = () => {
-            gui.remove();
-        };
-
-        buttons.appendChild(copyBtn);
-        buttons.appendChild(closeBtn);
-
-        gui.appendChild(title);
-        gui.appendChild(ipText);
-        gui.appendChild(buttons);
+                <button id="ghost-copy-ip" style="
+                    background:#fff;
+                    color:#000;
+                    border:none;
+                    border-radius:8px;
+                    padding:12px;
+                    font-weight:bold;
+                    cursor:pointer;
+                ">
+                    Copiar IP
+                </button>
+            </div>
+        `;
 
         document.body.appendChild(gui);
+
+        makeHUDDraggable(gui);
+
+        gui.querySelector("#ghost-copy-ip").onclick = () => {
+            navigator.clipboard.writeText(record.data);
+
+            showNotification("IP copiado");
+        };
+
+        gui.querySelector("#ghost-ip-close").onclick = () => {
+            gui.remove();
+        };
 
     } catch {
         showNotification("Erro ao buscar IP.");
     }
-});
-
-addButton("Abrir Sites | relacionados ", secTools, () => {
-    createHiddenSitesWindow();
 });
 
 const ignoredInspectorElements = [
