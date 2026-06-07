@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      6
+// @version      5
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -612,7 +612,7 @@ addButton("Abrir Executer", secTools, () => {
     createExecuterWindow();
 });
 
-const createConnectionsWindow = () => {
+const createConsoleWindow = () => {
 if (document.getElementById("ghost-console-root")) return;
 
 const consoleRoot = document.createElement("div");
@@ -753,7 +753,7 @@ document.addEventListener("mouseup", () => {
 };
 
 addButton("Abrir Monitor de Erros", secTools, () => {
-    createConnectionsWindow();
+    createConsoleWindow()
     showNotification("Monitor iniciado");
 });
 
