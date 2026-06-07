@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      61
+// @version      62
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -750,7 +750,7 @@ addButton("Mostrar IP do Site", secTools, async () => {
 
 const secRemv = addSection("Remover", content);
 
-addButton("Remover Cookies", secTools, () => {
+addButton("Remover Cookies", secRemv, () => {
     try {
         const cookies = document.cookie.split(";");
 
