@@ -600,11 +600,11 @@ let fpsInterval = null;
         
         const secTools = addSection("utils", content);
 
-addButton("Inspecionar Objeto", secTools, () => {
+addButton("Inspecionar Objeto ( CLICK )", secTools, () => {
     startInspectMode();
 });
 
-addButton("Click Para Deletar", secTools, () => {
+addButton("Click Para Deletar ( CLICK )", secTools, () => {
     startDeleteMode();
 });
 
@@ -618,90 +618,6 @@ addButton("Reiniciar Site", secTools, () => {
     setTimeout(() => {
         location.reload();
     }, 500);
-});
-
-addButton("Remover Cookies", secTools, () => {
-    try {
-        const cookies = document.cookie.split(";");
-
-        for (const cookie of cookies) {
-            const eqPos = cookie.indexOf("=");
-            const name = eqPos > -1
-                ? cookie.substring(0, eqPos).trim()
-                : cookie.trim();
-
-            document.cookie =
-                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-
-            document.cookie =
-                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${location.hostname};`;
-
-            document.cookie =
-                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${location.hostname};`;
-        }
-
-        showNotification("Cookies removidos");
-
-    } catch {
-        showNotification("Erro ao remover cookies");
-    }
-});
-
-let adBlockEnabled = false;
-let adBlockStyle = null;
-
-addButton("Toggle Bloquear Anúncios", secTools, () => {
-    adBlockEnabled = !adBlockEnabled;
-
-    if (adBlockEnabled) {
-        adBlockStyle = document.createElement("style");
-
-        adBlockStyle.id = "ghost-adblock-style";
-
-        adBlockStyle.innerHTML = `
-            iframe,
-            [id*="ad"],
-            [class*="ad"],
-            [class*="banner"],
-            [id*="banner"],
-            [class*="popup"],
-            [class*="sponsor"],
-            [class*="ads"],
-            [src*="doubleclick"],
-            [src*="googlesyndication"] {
-                display:none !important;
-                visibility:hidden !important;
-                opacity:0 !important;
-                pointer-events:none !important;
-            }
-        `;
-
-        document.head.appendChild(adBlockStyle);
-
-        showNotification("Bloqueador ativado");
-
-    } else {
-        document.getElementById("ghost-adblock-style")?.remove();
-
-        showNotification("Bloqueador desativado");
-    }
-});
-
-addButton("Limpar Cache", secTools, async () => {
-    try {
-        if ("caches" in window) {
-            const keys = await caches.keys();
-
-            await Promise.all(
-                keys.map(key => caches.delete(key))
-            );
-        }
-
-        showNotification("Cache limpo");
-
-    } catch {
-        showNotification("Erro ao limpar cache");
-    }
 });
 
 addButton("Mostrar IP do Site", secTools, async () => {
@@ -829,6 +745,35 @@ addButton("Mostrar IP do Site", secTools, async () => {
 
     } catch {
         showNotification("Erro ao buscar IP.");
+    }
+});
+
+const secTools = addSection("Remover", content);
+
+addButton("Remover Cookies", secTools, () => {
+    try {
+        const cookies = document.cookie.split(";");
+
+        for (const cookie of cookies) {
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1
+                ? cookie.substring(0, eqPos).trim()
+                : cookie.trim();
+
+            document.cookie =
+                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+
+            document.cookie =
+                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${location.hostname};`;
+
+            document.cookie =
+                `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${location.hostname};`;
+        }
+
+        showNotification("Cookies removidos");
+
+    } catch {
+        showNotification("Erro ao remover cookies");
     }
 });
 
