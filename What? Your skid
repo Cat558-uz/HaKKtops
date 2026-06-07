@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      61
+// @version      1
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -748,7 +748,7 @@ addButton("Mostrar IP do Site", secTools, async () => {
     }
 });
 
-const createExecuterWindow = () => {
+function createExecuterWindow() {
 if (document.getElementById("ghost-executer-root")) return;
 
 const execRoot = document.createElement("div");
@@ -893,7 +893,7 @@ createExecuterWindow();
 showNotification("Executer Iniciado");
 });
 
-const createConsoleWindow = () => {
+const createConnectionsWindow = () => {
 if (document.getElementById("ghost-console-root")) return;
 
 const consoleRoot = document.createElement("div");
