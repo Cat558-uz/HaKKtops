@@ -1038,7 +1038,7 @@ createExecuterWindow();
 showNotification("Executer Iniciado");
 });
 
-addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
+ addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
 createConnectionsWindow();
 showNotification("Mapeando conexões da página...");
 });
