@@ -601,7 +601,7 @@ let fpsInterval = null;
         const secTools = addSection("utils", content);
 
 addButton("Inspecionar Objeto ( CLICK )", secTools, () => {
-    startInspectMode();
+    starq();
 });
 
 addButton("Click Para Deletar ( CLICK )", secTools, () => {
@@ -1174,7 +1174,7 @@ const startDeleteMode = () => {
     showNotification("Clique em um objeto");
 };
 
-const startInspectMode = () => {
+const starq = () => {
     if (document.getElementById("ghost-inspector")) return;
 
     const panel = document.createElement("div");
