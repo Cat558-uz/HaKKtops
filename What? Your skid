@@ -1245,9 +1245,242 @@ createExecuterWindow();
 showNotification("Executer Iniciado");
 });
 
+const createConnectionsWindow = () => {
+    if (document.getElementById("ghost-connections-root")) return;
+
+    const root = document.createElement("div");
+
+    root.id = "ghost-connections-root";
+
+    root.style.cssText = `
+        position:fixed;
+        top:140px;
+        left:140px;
+        width:520px;
+        height:420px;
+        background:#050505;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:12px;
+        overflow:hidden;
+        z-index:999999999;
+        display:flex;
+        flex-direction:column;
+        box-shadow:0 30px 70px rgba(0,0,0,0.75);
+        font-family:monospace;
+    `;
+
+    root.innerHTML = `
+        <div id="ghost-connections-header" style="
+            padding:12px;
+            background:#0d0d0d;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            color:#fff;
+            user-select:none;
+            cursor:move;
+        ">
+            <span style="font-size:12px;font-weight:bold;">
+                DOMÍNIOS CONECTADOS
+            </span>
+
+            <button id="ghost-connections-close" style="
+                width:30px;
+                height:30px;
+                border:none;
+                border-radius:6px;
+                background:#ff4444;
+                color:#fff;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+                ×
+            </button>
+        </div>
+
+        <div style="
+            padding:10px;
+            border-bottom:1px solid rgba(255,255,255,0.05);
+            background:#090909;
+        ">
+            <input
+                id="ghost-domain-search"
+                placeholder="Pesquisar domínio..."
+                spellcheck="false"
+                style="
+                    width:100%;
+                    box-sizing:border-box;
+                    background:#111;
+                    border:none;
+                    outline:none;
+                    padding:10px;
+                    border-radius:8px;
+                    color:#fff;
+                    font-family:monospace;
+                    font-size:11px;
+                "
+            >
+        </div>
+
+        <div
+            id="ghost-connections-list"
+            style="
+                flex:1;
+                overflow:auto;
+                padding:10px;
+                display:flex;
+                flex-direction:column;
+                gap:8px;
+            "
+        ></div>
+    `;
+
+    document.body.appendChild(root);
+
+    const list = root.querySelector("#ghost-connections-list");
+
+    const domains = new Set();
+
+    const addDomain = (url, type = "FETCH") => {
+        try {
+            const domain = new URL(url, location.href).hostname;
+
+            if (!domain || domains.has(domain)) return;
+
+            domains.add(domain);
+
+            const item = document.createElement("div");
+
+            item.setAttribute("data-domain", domain.toLowerCase());
+
+            item.style.cssText = `
+                background:#0d0d0d;
+                border:1px solid rgba(255,255,255,0.06);
+                border-radius:8px;
+                padding:10px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+            `;
+
+            item.innerHTML = `
+                <div style="
+                    display:flex;
+                    flex-direction:column;
+                    gap:4px;
+                    overflow:hidden;
+                ">
+                    <span style="
+                        color:#fff;
+                        font-size:11px;
+                        word-break:break-all;
+                    ">
+                        ${domain}
+                    </span>
+
+                    <span style="
+                        color:#777;
+                        font-size:10px;
+                    ">
+                        ${type}
+                    </span>
+                </div>
+
+                <button style="
+                    background:#fff;
+                    color:#000;
+                    border:none;
+                    padding:7px 10px;
+                    border-radius:6px;
+                    cursor:pointer;
+                    font-size:10px;
+                    font-weight:bold;
+                    flex-shrink:0;
+                ">
+                    COPIAR
+                </button>
+            `;
+
+            item.querySelector("button").onclick = () => {
+                navigator.clipboard.writeText(domain);
+
+                showNotification("Domínio copiado");
+            };
+
+            list.appendChild(item);
+        } catch {}
+    };
+
+    performance.getEntriesByType("resource").forEach((res) => {
+        addDomain(res.name, res.initiatorType || "RESOURCE");
+    });
+
+    const originalFetch = window.fetch;
+
+    window.fetch = async (...args) => {
+        addDomain(args[0], "FETCH");
+
+        return originalFetch.apply(window, args);
+    };
+
+    const originalOpen = XMLHttpRequest.prototype.open;
+
+    XMLHttpRequest.prototype.open = function(method, url) {
+        addDomain(url, "XHR");
+
+        return originalOpen.apply(this, arguments);
+    };
+
+    root.querySelector("#ghost-domain-search").oninput = (e) => {
+        const value = e.target.value.toLowerCase();
+
+        list.querySelectorAll("[data-domain]").forEach((el) => {
+            el.style.display = el
+                .getAttribute("data-domain")
+                .includes(value)
+                    ? "flex"
+                    : "none";
+        });
+    };
+
+    root.querySelector("#ghost-connections-close").onclick = () => {
+        root.remove();
+    };
+
+    let drag = false;
+
+    let offsetX = 0;
+    let offsetY = 0;
+
+    const header = root.querySelector("#ghost-connections-header");
+
+    header.onmousedown = (e) => {
+        if (e.target.id === "ghost-connections-close") return;
+
+        drag = true;
+
+        offsetX = e.clientX - root.offsetLeft;
+        offsetY = e.clientY - root.offsetTop;
+    };
+
+    document.addEventListener("mousemove", (e) => {
+        if (!drag) return;
+
+        root.style.left = `${e.clientX - offsetX}px`;
+        root.style.top = `${e.clientY - offsetY}px`;
+    });
+
+    document.addEventListener("mouseup", () => {
+        drag = false;
+    });
+
+    showNotification("Monitorando conexões");
+};
+
 addButton("Inspecionar Sites Ligados (Domínios)", secTools, () => {
-createConnectionsWindow();
-showNotification("Vendo sites...");
+    createConnectionsWindow();
 });
 
 addButton("Mostrar Cookies", secTools, () => {
