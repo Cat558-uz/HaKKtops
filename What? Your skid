@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      62
+// @version      61
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -748,9 +748,392 @@ addButton("Mostrar IP do Site", secTools, async () => {
     }
 });
 
-const secRemv = addSection("Remover", content);
+const createExecuterWindow = () => {
+if (document.getElementById("ghost-executer-root")) return;
 
-addButton("Remover Cookies", secRemv, () => {
+const execRoot = document.createElement("div");
+execRoot.id = "ghost-executer-root";
+
+execRoot.style = `
+    position:fixed;
+    top:150px;
+    left:500px;
+    width:340px;
+    height:260px;
+    background:#0a0a0a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    z-index:9999999;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    font-family:monospace;
+    box-shadow:0 25px 50px rgba(0,0,0,0.7);
+`;
+
+execRoot.innerHTML = `
+    <div id="exec-header" style="
+        background:rgba(255,255,255,0.02);
+        padding:10px;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        cursor:grab;
+        font-size:11px;
+        font-weight:bold;
+    ">
+        <span>CONSOLE EXECUTER</span>
+
+        <button id="exec-close" style="
+            background:none;
+            border:none;
+            color:#999;
+            font-size:13px;
+            cursor:pointer;
+        ">×</button>
+    </div>
+
+    <div style="
+        flex-grow:1;
+        padding:10px;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    ">
+        <textarea
+            id="exec-code"
+            spellcheck="false"
+            placeholder="// Digite JavaScript aqui..."
+            style="
+                flex-grow:1;
+                background:#050505;
+                border:1px solid rgba(255,255,255,0.08);
+                border-radius:6px;
+                color:#fff;
+                padding:10px;
+                resize:none;
+                outline:none;
+                font-family:monospace;
+                font-size:11px;
+            "
+        ></textarea>
+
+        <button
+            id="exec-run"
+            style="
+                background:#fff;
+                color:#000;
+                border:none;
+                border-radius:6px;
+                padding:8px;
+                font-size:11px;
+                font-weight:bold;
+                cursor:pointer;
+            "
+        >
+            EXECUTAR
+        </button>
+    </div>
+`;
+
+document.body.appendChild(execRoot);
+
+const codeBox = execRoot.querySelector("#exec-code");
+
+execRoot.querySelector("#exec-close").onclick = () => {
+    execRoot.remove();
+};
+
+execRoot.querySelector("#exec-run").onclick = () => {
+    try {
+        const result = new Function(codeBox.value)();
+
+        showNotification("Código executado");
+
+        if (result !== undefined) {
+            console.log(result);
+        }
+    } catch (err) {
+        console.error(err);
+        showNotification("Erro ao executar");
+    }
+};
+
+let drag = false;
+let offsetX = 0;
+let offsetY = 0;
+
+const header = execRoot.querySelector("#exec-header");
+
+header.onmousedown = (e) => {
+    if (e.target.id === "exec-close") return;
+
+    drag = true;
+
+    offsetX = e.clientX - execRoot.offsetLeft;
+    offsetY = e.clientY - execRoot.offsetTop;
+};
+
+document.addEventListener("mousemove", (e) => {
+    if (!drag) return;
+
+    execRoot.style.left = `${e.clientX - offsetX}px`;
+    execRoot.style.top = `${e.clientY - offsetY}px`;
+});
+
+document.addEventListener("mouseup", () => {
+    drag = false;
+});
+
+};
+
+addButton("Abrir Executer (test)", secTools, () => {
+createExecuterWindow();
+showNotification("Executer Iniciado");
+});
+
+const createConsoleWindow = () => {
+if (document.getElementById("ghost-console-root")) return;
+
+const consoleRoot = document.createElement("div");
+consoleRoot.id = "ghost-console-root";
+
+consoleRoot.style = `
+    position:fixed;
+    top:180px;
+    left:120px;
+    width:420px;
+    height:300px;
+    background:#0a0a0a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    z-index:9999999;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    font-family:monospace;
+    box-shadow:0 25px 50px rgba(0,0,0,0.7);
+`;
+
+consoleRoot.innerHTML = `
+    <div id="console-header" style="
+        background:rgba(255,255,255,0.02);
+        padding:10px;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        cursor:grab;
+        font-size:11px;
+        font-weight:bold;
+    ">
+        <span>MONITOR DE ERROS</span>
+
+        <button id="console-close" style="
+            background:none;
+            border:none;
+            color:#999;
+            font-size:13px;
+            cursor:pointer;
+        ">×</button>
+    </div>
+
+    <textarea
+        id="ghost-console-logs"
+        readonly
+        style="
+            flex-grow:1;
+            background:#050505;
+            color:#ff5555;
+            border:none;
+            outline:none;
+            resize:none;
+            padding:10px;
+            font-size:11px;
+            font-family:monospace;
+        "
+    ></textarea>
+`;
+
+document.body.appendChild(consoleRoot);
+
+const logs = consoleRoot.querySelector("#ghost-console-logs");
+
+window.addEventListener("error", (e) => {
+    logs.value += `[ERRO] ${e.message}\n`;
+    logs.scrollTop = logs.scrollHeight;
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+    logs.value += `[PROMISE] ${e.reason}\n`;
+    logs.scrollTop = logs.scrollHeight;
+});
+
+consoleRoot.querySelector("#console-close").onclick = () => {
+    consoleRoot.remove();
+};
+
+let drag = false;
+let offsetX = 0;
+let offsetY = 0;
+
+const header = consoleRoot.querySelector("#console-header");
+
+header.onmousedown = (e) => {
+    if (e.target.id === "console-close") return;
+
+    drag = true;
+
+    offsetX = e.clientX - consoleRoot.offsetLeft;
+    offsetY = e.clientY - consoleRoot.offsetTop;
+};
+
+document.addEventListener("mousemove", (e) => {
+    if (!drag) return;
+
+    consoleRoot.style.left = `${e.clientX - offsetX}px`;
+    consoleRoot.style.top = `${e.clientY - offsetY}px`;
+});
+
+document.addEventListener("mouseup", () => {
+    drag = false;
+});
+
+};
+
+addButton("Abrir Monitor de Erros (console emu)", secTools, () => {
+createConsoleWindow();
+showNotification("Mini-Console Aberto");
+});
+
+const createConnectionsWindow = () => {
+if (document.getElementById("ghost-conn-root")) return;
+
+const connRoot = document.createElement("div");
+connRoot.id = "ghost-conn-root";
+
+connRoot.style = `
+    position:fixed;
+    top:200px;
+    left:200px;
+    width:380px;
+    height:320px;
+    background:#0a0a0a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    z-index:9999999;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    font-family:monospace;
+    box-shadow:0 25px 50px rgba(0,0,0,0.7);
+`;
+
+const domains = new Set();
+
+domains.add(window.location.hostname);
+
+document.querySelectorAll("script[src], iframe[src], img[src], link[href]").forEach(el => {
+    try {
+        const url = new URL(el.src || el.href);
+        domains.add(url.hostname);
+    } catch {}
+});
+
+if (performance.getEntriesByType) {
+    performance.getEntriesByType("resource").forEach(res => {
+        try {
+            const url = new URL(res.name);
+            domains.add(url.hostname);
+        } catch {}
+    });
+}
+
+const list = Array.from(domains).map(domain => {
+    return `
+        <div style="
+            padding:6px 10px;
+            border-bottom:1px solid rgba(255,255,255,0.03);
+            color:#b3b3b3;
+            font-size:11px;
+        ">
+            ${domain}
+        </div>
+    `;
+}).join("");
+
+connRoot.innerHTML = `
+    <div id="conn-header" style="
+        background:rgba(255,255,255,0.02);
+        padding:10px;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        cursor:grab;
+        font-size:11px;
+        font-weight:bold;
+    ">
+        <span>SITES CONECTADOS</span>
+
+        <button id="conn-close" style="
+            background:none;
+            border:none;
+            color:#999;
+            font-size:13px;
+            cursor:pointer;
+        ">×</button>
+    </div>
+
+    <div style="
+        flex-grow:1;
+        overflow-y:auto;
+    ">
+        ${list || '<div style="padding:10px;color:#777;">Nenhuma conexão detectada</div>'}
+    </div>
+`;
+
+document.body.appendChild(connRoot);
+
+connRoot.querySelector("#conn-close").onclick = () => {
+    connRoot.remove();
+};
+
+let drag = false;
+let offsetX = 0;
+let offsetY = 0;
+
+const header = connRoot.querySelector("#conn-header");
+
+header.onmousedown = (e) => {
+    if (e.target.id === "conn-close") return;
+
+    drag = true;
+
+    offsetX = e.clientX - connRoot.offsetLeft;
+    offsetY = e.clientY - connRoot.offsetTop;
+};
+
+document.addEventListener("mousemove", (e) => {
+    if (!drag) return;
+
+    connRoot.style.left = `${e.clientX - offsetX}px`;
+    connRoot.style.top = `${e.clientY - offsetY}px`;
+});
+
+document.addEventListener("mouseup", () => {
+    drag = false;
+});
+
+};
+
+addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
+createConnectionsWindow();
+showNotification("Mapeando conexões da página...");
+});
+
+addButton("Remover Cookies", secTools, () => {
     try {
         const cookies = document.cookie.split(";");
 
