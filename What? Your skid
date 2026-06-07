@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      5
+// @version      6
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -612,6 +612,151 @@ addButton("Abrir Executer", secTools, () => {
     createExecuterWindow();
 });
 
+const createConnectionsWindow = () => {
+if (document.getElementById("ghost-console-root")) return;
+
+const consoleRoot = document.createElement("div");
+consoleRoot.id = "ghost-console-root";
+
+consoleRoot.style = `
+    position:fixed;
+    top:180px;
+    left:120px;
+    width:420px;
+    height:300px;
+    background:#0a0a0a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    z-index:9999999;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    font-family:monospace;
+    box-shadow:0 25px 50px rgba(0,0,0,0.7);
+`;
+
+consoleRoot.innerHTML = `
+    <div id="console-header" style="
+        background:rgba(255,255,255,0.02);
+        padding:10px;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        cursor:grab;
+        font-size:11px;
+        font-weight:bold;
+        color:#fff;
+        user-select:none;
+    ">
+        <span>MONITOR DE ERROS</span>
+
+        <button id="console-close" style="
+            background:none;
+            border:none;
+            color:#999;
+            font-size:13px;
+            cursor:pointer;
+        ">×</button>
+    </div>
+
+    <textarea
+        id="ghost-console-logs"
+        readonly
+        spellcheck="false"
+        style="
+            flex-grow:1;
+            background:#050505;
+            color:#ff5555;
+            border:none;
+            outline:none;
+            resize:none;
+            padding:10px;
+            font-size:11px;
+            font-family:monospace;
+        "
+    ></textarea>
+`;
+
+document.body.appendChild(consoleRoot);
+
+const logs = consoleRoot.querySelector("#ghost-console-logs");
+
+const addLog = (text) => {
+    logs.value += text + "\n";
+    logs.scrollTop = logs.scrollHeight;
+};
+
+addLog("[Sistema] Monitor iniciado");
+addLog("[Sistema] Capturando erros da página");
+
+window.addEventListener("error", (e) => {
+    addLog(`[ERRO] ${e.message}`);
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+    addLog(`[PROMISE] ${e.reason}`);
+});
+
+const originalFetch = window.fetch;
+
+window.fetch = async (...args) => {
+    try {
+        const res = await originalFetch(...args);
+
+        addLog(`[FETCH] ${args[0]} -> ${res.status}`);
+
+        return res;
+    } catch (err) {
+        addLog(`[FETCH ERROR] ${args[0]}`);
+        throw err;
+    }
+};
+
+const originalOpen = XMLHttpRequest.prototype.open;
+
+XMLHttpRequest.prototype.open = function(method, url) {
+    addLog(`[XHR] ${method} ${url}`);
+    return originalOpen.apply(this, arguments);
+};
+
+consoleRoot.querySelector("#console-close").onclick = () => {
+    consoleRoot.remove();
+};
+
+let drag = false;
+let offsetX = 0;
+let offsetY = 0;
+
+const header = consoleRoot.querySelector("#console-header");
+
+header.onmousedown = (e) => {
+    if (e.target.id === "console-close") return;
+
+    drag = true;
+
+    offsetX = e.clientX - consoleRoot.offsetLeft;
+    offsetY = e.clientY - consoleRoot.offsetTop;
+};
+
+document.addEventListener("mousemove", (e) => {
+    if (!drag) return;
+
+    consoleRoot.style.left = `${e.clientX - offsetX}px`;
+    consoleRoot.style.top = `${e.clientY - offsetY}px`;
+});
+
+document.addEventListener("mouseup", () => {
+    drag = false;
+});
+
+};
+
+addButton("Abrir Monitor de Erros", secTools, () => {
+    createConnectionsWindow();
+    showNotification("Monitor iniciado");
+});
+
 addButton("Reiniciar Site", secTools, () => {
     showNotification("Reiniciando site...");
 
@@ -1001,11 +1146,6 @@ document.addEventListener("mouseup", () => {
 });
 
 };
-
-addButton("Abrir Monitor de Erros (console emu)", secTools, () => {
-createConsoleWindow();
-showNotification("Mini-Console Aberto");
-});
 
 addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
 createConnectionsWindow();
