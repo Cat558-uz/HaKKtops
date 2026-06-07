@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hacks Menu
 // @namespace    https://ghost-ui
-// @version      5
+// @version      6
 // @description  Modular UI Menu Pro - Edição Ultimate com Minimalismo e Atalho Ç
 // @author       Ghost
 // @match        *://*/*
@@ -1245,7 +1245,7 @@ createExecuterWindow();
 showNotification("Executer Iniciado");
 });
 
- addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
+addButton("Inspecionar Sites Ligados (Domínios)", secUtilitarios, () => {
 createConnectionsWindow();
 showNotification("Mapeando conexões da página...");
 });
