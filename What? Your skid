@@ -600,13 +600,6 @@ let fpsInterval = null;
         
         const secTools = addSection("utils", content);
 
-addButton("Inspecionar Objeto ( CLICK )", secTools, () => {
-    starq();
-});
-
-addButton("Click Para Deletar ( CLICK )", secTools, () => {
-    startDeleteMode();
-});
 
 addButton("Abrir Executer", secTools, () => {
     createExecuterWindow();
@@ -1033,6 +1026,334 @@ document.addEventListener("mouseup", () => {
 
 };
 
+const startDeleteMode = () => {
+    if (window.ghostDeleteMode) return;
+
+    window.ghostDeleteMode = true;
+
+    const overlay = document.createElement("div");
+
+    overlay.id = "ghost-delete-overlay";
+
+    overlay.style = `
+        position:fixed;
+        background:#ff0000;
+        color:#fff;
+        padding:6px 10px;
+        border-radius:6px;
+        font-size:11px;
+        pointer-events:none;
+        z-index:10000001;
+        font-family:monospace;
+    `;
+
+    document.body.appendChild(overlay);
+
+    const move = (e) => {
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) {
+            overlay.style.display = "none";
+            return;
+        }
+
+        overlay.style.display = "block";
+
+        overlay.style.left = `${e.clientX + 14}px`;
+        overlay.style.top = `${e.clientY + 14}px`;
+
+        overlay.textContent =
+            el.tagName.toLowerCase() +
+            (el.id ? ` #${el.id}` : "");
+    };
+
+    const click = (e) => {
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            el.remove();
+            showNotification("Objeto deletado");
+        } catch {
+            showNotification("Erro ao deletar");
+        }
+
+        stop();
+    };
+
+    const stop = () => {
+        window.ghostDeleteMode = false;
+
+        document.removeEventListener(
+            "mousemove",
+            move,
+            true
+        );
+
+        document.removeEventListener(
+            "click",
+            click,
+            true
+        );
+
+        overlay.remove();
+    };
+
+    document.addEventListener(
+        "mousemove",
+        move,
+        true
+    );
+
+    document.addEventListener(
+        "click",
+        click,
+        true
+    );
+
+    showNotification("Clique em um objeto");
+};
+
+const startInspectMode = () => {
+    if (document.getElementById("ghost-inspector")) return;
+
+    const panel = document.createElement("div");
+
+    panel.id = "ghost-inspector";
+
+    panel.style = `
+        position:fixed;
+        top:90px;
+        right:20px;
+        width:520px;
+        height:620px;
+        background:#050505;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:12px;
+        overflow:hidden;
+        z-index:10000000;
+        display:flex;
+        flex-direction:column;
+        box-shadow:0 30px 70px rgba(0,0,0,0.75);
+    `;
+
+    panel.innerHTML = `
+        <div id="ghost-inspector-header" style="
+            padding:12px;
+            background:#0d0d0d;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+            color:#fff;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            cursor:move;
+            user-select:none;
+        ">
+            <span style="font-weight:bold;">
+                Inspector
+            </span>
+
+            <button id="ghost-inspector-close" style="
+                width:30px;
+                height:30px;
+                border:none;
+                border-radius:6px;
+                background:#ff4444;
+                color:#fff;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                ×
+            </button>
+        </div>
+
+        <div id="ghost-inspector-info" style="
+            padding:10px 14px;
+            background:#090909;
+            border-bottom:1px solid rgba(255,255,255,0.05);
+            color:#aaa;
+            font-size:12px;
+            font-family:monospace;
+        ">
+            Clique em algum objeto
+        </div>
+
+        <textarea id="ghost-inspector-editor" spellcheck="false" style="
+            flex:1;
+            background:#030303;
+            color:#fff;
+            border:none;
+            outline:none;
+            resize:none;
+            padding:14px;
+            font-family:monospace;
+            font-size:12px;
+            line-height:1.5;
+        "></textarea>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            padding:12px;
+            background:#0d0d0d;
+            border-top:1px solid rgba(255,255,255,0.06);
+        ">
+            <button id="ghost-inspector-apply" style="
+                flex:1;
+                background:#fff;
+                color:#000;
+                border:none;
+                padding:12px;
+                border-radius:8px;
+                font-weight:bold;
+                cursor:pointer;
+            ">
+                Aplicar Alterações
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    makeHUDDraggable(panel);
+
+    const editor =
+        panel.querySelector("#ghost-inspector-editor");
+
+    fixTyping(editor);
+
+    let currentElement = null;
+
+    const hover = document.createElement("div");
+
+    hover.id = "ghost-hover-box";
+
+    hover.style = `
+        position:fixed;
+        border:2px solid #ffffff;
+        background:rgba(255,255,255,0.03);
+        pointer-events:none;
+        z-index:10000001;
+        border-radius:4px;
+    `;
+
+    document.body.appendChild(hover);
+
+    const info =
+        panel.querySelector("#ghost-inspector-info");
+
+    const move = (e) => {
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) {
+            hover.style.display = "none";
+            return;
+        }
+
+        hover.style.display = "block";
+
+        const rect = el.getBoundingClientRect();
+
+        hover.style.left = rect.left + "px";
+        hover.style.top = rect.top + "px";
+        hover.style.width = rect.width + "px";
+        hover.style.height = rect.height + "px";
+
+        info.textContent =
+            `${el.tagName.toLowerCase()} ${
+                el.id ? "#" + el.id : ""
+            }`;
+    };
+
+    const click = (e) => {
+        const el = e.target;
+
+        if (!el || isGhostUI(el)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        currentElement = el;
+
+        editor.value = el.outerHTML;
+
+        showNotification("Objeto selecionado");
+    };
+
+    document.addEventListener(
+        "mousemove",
+        move,
+        true
+    );
+
+    document.addEventListener(
+        "click",
+        click,
+        true
+    );
+
+    panel.querySelector("#ghost-inspector-apply").onclick = () => {
+        if (!currentElement) return;
+
+        try {
+            const temp = document.createElement("div");
+
+            temp.innerHTML = editor.value.trim();
+
+            const newElement =
+                temp.firstElementChild;
+
+            if (!newElement) {
+                showNotification("HTML inválido");
+                return;
+            }
+
+            currentElement.replaceWith(newElement);
+
+            currentElement = newElement;
+
+            showNotification("Objeto atualizado");
+        } catch (err) {
+            console.error(err);
+            showNotification("Erro ao modificar");
+        }
+    };
+
+    panel.querySelector("#ghost-inspector-close").onclick = () => {
+        document.removeEventListener(
+            "mousemove",
+            move,
+            true
+        );
+
+        document.removeEventListener(
+            "click",
+            click,
+            true
+        );
+
+        hover.remove();
+
+        panel.remove();
+
+        showNotification("Inspector fechado");
+    };
+
+    showNotification("Inspector ativado");
+};
+
+addButton("Inspecionar Objeto ( CLICK )", secTools, () => {
+    startInspectMode();
+});
+
+addButton("Click Para Deletar ( CLICK )", secTools, () => {
+    startDeleteMode();
+});
+
 addButton("Abrir Executer (test)", secTools, () => {
 createExecuterWindow();
 showNotification("Executer Iniciado");
@@ -1098,303 +1419,6 @@ const fixTyping = (el) => {
     });
 };
 
-const startDeleteMode = () => {
-    const overlay = document.createElement("div");
-
-    overlay.style = `
-        position:fixed;
-        background:#ff0000;
-        color:#fff;
-        padding:6px 10px;
-        border-radius:6px;
-        font-size:11px;
-        pointer-events:none;
-        z-index:10000001;
-        font-family:monospace;
-    `;
-
-    document.body.appendChild(overlay);
-
-    const move = (e) => {
-        const el = e.target;
-
-        if (isGhostUI(el)) return;
-
-        overlay.style.left = `${e.clientX + 14}px`;
-        overlay.style.top = `${e.clientY + 14}px`;
-
-        overlay.textContent =
-            el.tagName.toLowerCase() +
-            (el.id ? ` #${el.id}` : "");
-    };
-
-    const click = (e) => {
-        const el = e.target;
-
-        if (isGhostUI(el)) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        el.remove();
-
-        showNotification("Objeto deletado");
-
-        stop();
-    };
-
-    const stop = () => {
-        document.removeEventListener(
-            "mousemove",
-            move,
-            true
-        );
-
-        document.removeEventListener(
-            "click",
-            click,
-            true
-        );
-
-        overlay.remove();
-    };
-
-    document.addEventListener(
-        "mousemove",
-        move,
-        true
-    );
-
-    document.addEventListener(
-        "click",
-        click,
-        true
-    );
-
-    showNotification("Clique em um objeto");
-};
-
-const starq = () => {
-    if (document.getElementById("ghost-inspector")) return;
-
-    const panel = document.createElement("div");
-
-    panel.id = "ghost-inspector";
-
-    panel.style = `
-        position:fixed;
-        top:90px;
-        right:20px;
-        width:520px;
-        height:620px;
-        background:#050505;
-        border:1px solid rgba(255,255,255,0.08);
-        border-radius:12px;
-        overflow:hidden;
-        z-index:10000000;
-        display:flex;
-        flex-direction:column;
-        box-shadow:0 30px 70px rgba(0,0,0,0.75);
-    `;
-
-    panel.innerHTML = `
-        <div style="
-            padding:12px;
-            background:#0d0d0d;
-            border-bottom:1px solid rgba(255,255,255,0.06);
-            color:#fff;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            cursor:move;
-            user-select:none;
-        ">
-            <span style="font-weight:bold;">
-                Inspector
-            </span>
-
-            <button id="ghost-inspector-close" style="
-                width:30px;
-                height:30px;
-                border:none;
-                border-radius:6px;
-                background:#ff4444;
-                color:#fff;
-                font-weight:bold;
-                cursor:pointer;
-            ">
-                ×
-            </button>
-        </div>
-
-        <div id="ghost-inspector-info" style="
-            padding:10px 14px;
-            background:#090909;
-            border-bottom:1px solid rgba(255,255,255,0.05);
-            color:#aaa;
-            font-size:12px;
-            font-family:monospace;
-        ">
-            Passe o mouse em um objeto
-        </div>
-
-        <textarea id="ghost-inspector-editor" spellcheck="false" style="
-            flex:1;
-            background:#030303;
-            color:#fff;
-            border:none;
-            outline:none;
-            resize:none;
-            padding:14px;
-            font-family:monospace;
-            font-size:12px;
-            line-height:1.5;
-        "></textarea>
-
-        <div style="
-            display:flex;
-            gap:10px;
-            padding:12px;
-            background:#0d0d0d;
-            border-top:1px solid rgba(255,255,255,0.06);
-        ">
-            <button id="ghost-inspector-apply" style="
-                flex:1;
-                background:#fff;
-                color:#000;
-                border:none;
-                padding:12px;
-                border-radius:8px;
-                font-weight:bold;
-                cursor:pointer;
-            ">
-                Aplicar Alterações
-            </button>
-        </div>
-    `;
-
-    document.body.appendChild(panel);
-
-    makeHUDDraggable(panel);
-
-    const editor =
-        panel.querySelector("#ghost-inspector-editor");
-
-    fixTyping(editor);
-
-    let currentElement = null;
-
-    const hover = document.createElement("div");
-
-    hover.style = `
-        position:fixed;
-        border:2px solid #ffffff;
-        background:rgba(255,255,255,0.03);
-        pointer-events:none;
-        z-index:10000001;
-        border-radius:4px;
-    `;
-
-    document.body.appendChild(hover);
-
-    const info =
-        panel.querySelector("#ghost-inspector-info");
-
-    const move = (e) => {
-        const el = e.target;
-
-        if (isGhostUI(el)) {
-            hover.style.display = "none";
-            return;
-        }
-
-        hover.style.display = "block";
-
-        const rect = el.getBoundingClientRect();
-
-        hover.style.left = rect.left + "px";
-        hover.style.top = rect.top + "px";
-        hover.style.width = rect.width + "px";
-        hover.style.height = rect.height + "px";
-
-        info.textContent =
-            `${el.tagName.toLowerCase()} ${
-                el.id ? "#" + el.id : ""
-            }`;
-    };
-
-    const click = (e) => {
-        const el = e.target;
-
-        if (isGhostUI(el)) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        currentElement = el;
-
-        editor.value = el.outerHTML;
-
-        showNotification("Objeto selecionado");
-    };
-
-    document.addEventListener(
-        "mousemove",
-        move,
-        true
-    );
-
-    document.addEventListener(
-        "click",
-        click,
-        true
-    );
-
-    panel.querySelector("#ghost-inspector-apply").onclick = () => {
-        if (!currentElement) return;
-
-        try {
-            const temp = document.createElement("div");
-
-            temp.innerHTML = editor.value;
-
-            const newElement =
-                temp.firstElementChild;
-
-            if (!newElement) return;
-
-            currentElement.replaceWith(newElement);
-
-            currentElement = newElement;
-
-            showNotification("Objeto atualizado");
-        } catch {
-            showNotification("Erro ao modificar");
-        }
-    };
-
-    panel.querySelector("#ghost-inspector-close").onclick = () => {
-        document.removeEventListener(
-            "mousemove",
-            move,
-            true
-        );
-
-        document.removeEventListener(
-            "click",
-            click,
-            true
-        );
-
-        hover.remove();
-
-        panel.remove();
-
-        showNotification("Inspector fechado");
-    };
-
-    showNotification("Inspector ativado");
-};
         
 }
 
