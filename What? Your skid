@@ -1483,6 +1483,44 @@ addButton("Inspecionar Sites Ligados (Domínios)", secTools, () => {
     createConnectionsWindow();
 });
 
+// --- ADICIONAR BOTÃO NA INTERFACE ---
+addButton("Editar Textos (ON/OFF)", secTools, () => {
+    toggleTextEditing();
+});
+
+// --- FUNÇÃO: MODO EDIÇÃO DE TEXTO DIRETO ---
+const toggleTextEditing = () => {
+    // Se o modo não existir no sistema global, cria como falso
+    if (window.ghostTextEditMode === undefined) {
+        window.ghostTextEditMode = false;
+    }
+
+    // Inverte o estado (Ativa se estiver desativado, desativa se estiver ativo)
+    window.ghostTextEditMode = !window.ghostTextEditMode;
+
+    if (window.ghostTextEditMode) {
+        // Ativa a edição em todo o corpo do site
+        document.body.contentEditable = "true";
+        
+        // Adiciona um efeito visual sutil nas bordas para saber o que está sendo editado
+        const style = document.createElement("style");
+        style.id = "ghost-edit-style";
+        style.textContent = "[contenteditable=true]:focus { outline: 2px dashed #ffffff !important; }";
+        document.head.appendChild(style);
+
+        showNotification("Modo Edição ATIVADO. Clique e digite em qualquer texto.");
+    } else {
+        // Desativa a edição
+        document.body.contentEditable = "false";
+
+        // Remove o efeito visual
+        const oldStyle = document.getElementById("ghost-edit-style");
+        if (oldStyle) oldStyle.remove();
+
+        showNotification("Modo Edição DESATIVADO. Alterações salvas no navegador.");
+    }
+};
+
 addButton("Mostrar Cookies", secTools, () => {
     showSiteCookies();
 });
